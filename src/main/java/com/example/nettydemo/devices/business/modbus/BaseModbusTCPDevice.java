@@ -4,15 +4,21 @@ import com.example.nettydemo.common.FrameType;
 import com.example.nettydemo.devices.business.BaseBusinessDevice;
 import com.example.nettydemo.models.FrameParseResult;
 import com.example.nettydemo.protocols.BaseProtocol;
+import com.example.nettydemo.protocols.modbus.ModbusTCPProtocol;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.javatuples.Pair;
 import org.javatuples.Quartet;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author: Qbss
@@ -29,19 +35,104 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
 
     private int MBAPIndex;
 
+    private Instant lastSendTime;
+
+    // 从站地址
+    private short deviceAddressShort;
+
+    public BaseModbusTCPDevice(String deviceSn, String dtuSn, String name, String protocolType, short address) {
+
+        this.baseProtocol = new ModbusTCPProtocol();
+
+        this.dtuSn = dtuSn;
+        this.sn = deviceSn;
+        this.name = name;
+        this.inputBytesBuffer = new byte[20480];
+        this.inputBytesBufferStart = 0;
+        this.inputBytesBufferLength = 0;
+        this.lock = new ReentrantLock();
+        this.canSwitchToNext = true;
+        this.hasDataToSend = false;
+        this.outputBytesBuffer = new LinkedBlockingDeque<>();
+        this.dataSectionMap = new HashMap<>();
+        this.MBAPIndex = 0;
+        this.lastSendTime = Instant.now();
+
+        this.deviceAddressShort = address;
+
+    }
+
     @Override
     public void onConnected() {
-        super.onConnected();
+        Instant now = Instant.now();
+        this.lastSendTime = now.minusSeconds(2000L);
+        this.MBAPIndex = 0;
+
     }
 
     @Override
     public void recordSendInfo(FrameType paramFrameType) {
-
+        // 此处根据不同的类型帧，进行不同业务处理
+        // 。。。。
+        this.lastSendTime = Instant.now();
     }
 
     @Override
     public void doBusiness() {
+        Instant now = Instant.now();
 
+        // 判断是否需要发送数据
+        Duration between = Duration.between(this.lastSendTime, now);
+
+        // 此处，常理来说，应该按照协议段去区分单独请求，但由于时间有限，一下子请求100个寄存器所有的数据（其实最大是124个
+        if (between.getSeconds() > 60) {
+            // 发送信息总召
+            sendReadData(3, 0, 10);
+        }
+
+    }
+
+    private void sendReadData(int type, int start, int num) {
+
+        if (this.MBAPIndex == 65535) {
+            this.MBAPIndex = 0;
+        } else {
+            this.MBAPIndex++;
+        }
+
+        byte[] sendBytes = new byte[12];
+
+        // 事务标识符
+        sendBytes[0] = (byte) (this.MBAPIndex >> 8 & 0xFF);
+        sendBytes[1] = (byte) (this.MBAPIndex & 0xFF);
+
+        // Modbus协议标识符
+        sendBytes[2] = 0;
+        sendBytes[3] = 0;
+
+        // 数据长度
+        sendBytes[4] = 0;
+        sendBytes[5] = 6;
+
+        // RTU信息体帧
+        byte[] queryBytes = new byte[6];
+        queryBytes[0] = (byte) (this.deviceAddressShort & 0xFF);
+        // 暂时默认 3
+        queryBytes[1] = (byte) (type & 0xFF);
+
+        // 起始地址
+        queryBytes[2] = (byte) (start >> 8 & 0xFF);
+        queryBytes[3] = (byte) (start & 0xFF);
+
+        // 寄存器数量
+        queryBytes[4] = (byte) (num >> 8 & 0xFF);
+        queryBytes[5] = (byte) (num & 0xFF);
+
+        // 将RTU信息体帧添加到发送帧中
+        System.arraycopy(queryBytes, 0, sendBytes, 6, 6);
+
+        this.outputBytesBuffer.offer(new Pair<>(FrameType.MODBUS_READ_DATA_FRAME, sendBytes));
+        this.hasDataToSend = true;
     }
 
     //重写解析方法

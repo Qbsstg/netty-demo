@@ -16,6 +16,7 @@ public abstract class BaseDevice {
 
     protected String sn;
 
+    protected String name;
     protected Instant lastReceivedTime;
 
 }

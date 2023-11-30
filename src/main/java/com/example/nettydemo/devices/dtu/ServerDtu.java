@@ -6,6 +6,7 @@ import com.example.nettydemo.common.GlobalVariables;
 import com.example.nettydemo.devices.BaseDevice;
 import com.example.nettydemo.devices.business.BaseBusinessDevice;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
@@ -49,6 +50,30 @@ public class ServerDtu extends BaseDevice {
 
     private ReentrantLock deviceIndexLock;
 
+
+    public ServerDtu(String sn, String name, String ipAddress, int port, AccessType accessType) {
+        this.sn = sn;
+        this.name = name;
+        this.ipAddress = ipAddress;
+        this.port = port;
+        this.accessType = accessType;
+        this.deviceIndex = 0;
+
+        this.deviceIndexLock = new ReentrantLock();
+        this.ctxLocal = null;
+
+        this.businessTaskFuture = GlobalVariables.GLOBAL_SCHEDULED_SERVICE_POOL.scheduleWithFixedDelay(() -> {
+            try {
+                // 调用数据处理周期函数
+                this.dispatch();
+            } catch (Exception e) {
+                log.warn("businessTaskFuture error", e);
+            }
+            // 1s处理一次
+        }, 0L, 1000L, TimeUnit.MILLISECONDS);
+
+    }
+
     public void onDisconnected() {
 
     }
@@ -60,7 +85,7 @@ public class ServerDtu extends BaseDevice {
         }
 
         this.ctxLocal = ctx;
-
+        log.info("设置，当前的链接信息为：ctx:{},{}", ctx.channel().id(), ctx.channel().isActive());
         // 如果当前采集器的线程池中的任务还没有执行完毕，那么就取消当前任务
         if (this.businessTaskFuture != null) {
             this.businessTaskFuture.cancel(true);
@@ -72,16 +97,19 @@ public class ServerDtu extends BaseDevice {
         this.businessTaskFuture = GlobalVariables.GLOBAL_SCHEDULED_SERVICE_POOL
                 .scheduleWithFixedDelay(() -> {
                     try {
-                        // 调用采集周期函数
+                        // 调用数据处理周期函数
+                        log.info("准备进入线程池，准备发送报文的ctx信息为 ctx：id: {}，其状态为：{}", this.ctxLocal.channel().id(), this.ctxLocal.channel().isActive());
                         this.dispatch();
                     } catch (Exception e) {
                         log.warn("businessTaskFuture error", e);
                     }
-                    // 60s采集一次当下
-                }, 0L, 60 * 1000L, TimeUnit.MILLISECONDS);
+                    // 1s处理一次
+                }, 0L,  1000L, TimeUnit.MILLISECONDS);
+
+        this.dispatch();
     }
 
-    // 数据处理函数
+    // 数据处理函数 包含数据采集指令下发和数据解析
     public void dispatch() {
 
         if (this.devices.isEmpty()) {
@@ -113,6 +141,8 @@ public class ServerDtu extends BaseDevice {
 
                     // 判断下通道依旧存在着
                     if (this.ctxLocal != null && !this.ctxLocal.isRemoved()) {
+
+                        log.info("准备发送报文的ctx信息为 ctx：id: {}", this.ctxLocal.channel().id());
 
                         // 发送报文
                         ByteBuf sendBuf = this.ctxLocal.alloc().buffer(outBuf.length);

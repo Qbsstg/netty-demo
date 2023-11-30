@@ -22,6 +22,8 @@ import java.util.concurrent.locks.Lock;
 @Data
 public abstract class BaseBusinessDevice extends BaseDevice {
 
+    protected  String dtuSn;
+
     // 当下缓冲区中的数据长度
     protected int inputBytesBufferLength;
 

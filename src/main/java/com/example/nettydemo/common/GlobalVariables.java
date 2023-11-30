@@ -20,7 +20,7 @@ public class GlobalVariables {
     //线程池，在初始化时初始固定size的线程池
     public static ScheduledExecutorService GLOBAL_SCHEDULED_SERVICE_POOL = null; //线程池
 
-    // public static List<ServerDtu> GLOBAL_SERVER_DTU_LIST;
+    public static List<ServerDtu> GLOBAL_SERVER_DTU_LIST;
 
     public static Map<String, ServerDtu> GLOBAL_CONNECTKEY_SERVER_DTU_MAP;
 
@@ -28,7 +28,7 @@ public class GlobalVariables {
 
 
     static {
-        // GLOBAL_SERVER_DTU_LIST = new ArrayList<>();
+        GLOBAL_SERVER_DTU_LIST = new ArrayList<>();
         GLOBAL_CONNECTKEY_SERVER_DTU_MAP = new HashMap<>();
         GLOBAL_CHANNEL_HANDLER_CONTEXT_MAP = new HashMap<>();
     }
