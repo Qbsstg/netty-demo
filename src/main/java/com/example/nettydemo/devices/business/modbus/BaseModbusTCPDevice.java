@@ -13,7 +13,7 @@ import org.javatuples.Quartet;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +33,16 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
     //帧解析器：基础帧解析器
     private BaseProtocol baseProtocol;
 
+    // 这个值在并发情况下会带来一些问题
+    /*
+     * 根据设定的模型：
+     *   doPares -> send -> doBusiness
+     * 1  x      ->  x   ->  产生报文
+     * 2  x      ->  发送  -> 产生报文
+     * 3  解析    ->  发送   ->  产生报文
+     * 问题就在于，因为是并发执行，一个线程在解析前，又有一条新的报文产生的了，导致MBAPIndex+1了，和解析的不一致了
+     * 现修改为获取事务序列号，直接从报文中处理
+     * */
     private int MBAPIndex;
 
     private Instant lastSendTime;
@@ -87,7 +97,7 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
         // 此处，常理来说，应该按照协议段去区分单独请求，但由于时间有限，一下子请求100个寄存器所有的数据（其实最大是124个
         if (between.getSeconds() > 60) {
             // 发送信息总召
-            sendReadData(3, 0, 10);
+            sendReadData(3, 0, 3);
         }
 
     }
@@ -153,7 +163,7 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
         Map<String, Object> param = new HashMap<>();
         // 暂时只考虑遥测的情况
         param.put("sectionName", "YC");
-        param.put("MBAPIndex", this.MBAPIndex);
+        // param.put("MBAPIndex", this.MBAPIndex);
 
         // 解析数据
         List<FrameParseResult> maps = this.baseProtocol.doBytesParse(bytesBuffer, param);
@@ -188,6 +198,8 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
         Pair<String, byte[]> pairData = f.getPairData();
         String sectionName = pairData.getValue0();
         byte[] datas = pairData.getValue1();
+
+        log.info("sectionName: {}, datas: {}", sectionName, Arrays.toString(datas));
 
         Quartet<Integer, Integer, String, byte[]> quartet = this.dataSectionMap.get(sectionName);
         if (quartet == null) {

@@ -42,7 +42,12 @@ public class ModbusTCPProtocol extends BaseProtocol {
         }
 
         // 获取 最后一次（最新）的 ModbusTCP中的MBAP中的事务处理标识，以便等下获取报文的序列号，以匹配对应的请求报文
-        int MBAPIndex = (Integer) params.get("MBAPIndex");
+        // int MBAPIndex = (Integer) params.get("MBAPIndex");
+        /*
+        * 修改：
+        *   获取当前序号的方式由于并发的存在，除非将MBAPIndex设置为线程安全的，否则会出现问题，改为从报文中直接获取
+        * */
+        int MBAPIndex = (inBuffer[0] & 0xFF) << 8 | (inBuffer[1] & 0xFF);
 
         // 将接受到的数据保存在缓冲区中，以便之后的解析
         System.arraycopy(inBuffer, 0, this.toBeParsedBytes, this.BytesBufferIndex, inBuffer.length);

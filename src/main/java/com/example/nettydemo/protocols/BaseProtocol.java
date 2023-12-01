@@ -35,10 +35,15 @@ public abstract class BaseProtocol {
 
     //
     /*
-    * 当前解析状态:解析头、解析长度、解析内容
-    *            0      1       2
-    * */
+     * 当前解析状态:解析头、解析长度、解析内容
+     *            0      1       2
+     * */
     protected int status;
+
+    public BaseProtocol() {
+        // 单次解析的帧大小
+        this.frameBytesBuffer = new byte[512];
+    }
 
     public List<FrameParseResult> doBytesParse(byte[] inBuffer, Map<String, Object> params) {
         return new ArrayList<>();

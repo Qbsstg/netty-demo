@@ -34,47 +34,47 @@ public class NettyClient {
         this.serverPort = serverPort;
     }
 
-    // public static void main(String[] args) throws InterruptedException {
-    //     EventLoopGroup group = new NioEventLoopGroup();
-    //     try {
-    //         Bootstrap bootstrap = new Bootstrap();
-    //         bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
-    //             @Override
-    //             protected void initChannel(SocketChannel ch) throws Exception {
-    //                 ch.pipeline().addLast(new IdleStateHandler(15, 0, 0, TimeUnit.MINUTES));
-    //                 ch.pipeline().addLast(new DtuServiceHandler());
-    //             }
-    //         });
-    //
-    //         // 连接到服务器
-    //         ChannelFuture channelFuture = bootstrap.connect("localhost", 502).sync();
-    //
-    //         // 获取Channel
-    //         Channel channel = channelFuture.channel();
-    //
-    //         byte[] message = new byte[]{0x00, 0x01, // 事务标识符
-    //                 0x00, 0x00, // 协议标识符
-    //                 0x00, 0x06, // 长度
-    //                 0x01,       // 单元标识符
-    //                 0x03,       // 功能码
-    //                 0x00, 0x00, // 起始地址
-    //                 0x00, 0x0A  // 寄存器数量
-    //         };
-    //
-    //         for (int i = 0; i < 10; i++) {
-    //             channel.writeAndFlush(Unpooled.copiedBuffer(message));
-    //             // Thread.sleep(1000);
-    //         }
-    //         // 发送数据
-    //         // String data = "Hello, Netty!";
-    //         // channel.writeAndFlush(Unpooled.copiedBuffer(message));
-    //
-    //         // 等待连接关闭
-    //         channel.closeFuture().sync();
-    //     } finally {
-    //         group.shutdownGracefully();
-    //     }
-    // }
+    public static void main(String[] args) throws InterruptedException {
+        EventLoopGroup group = new NioEventLoopGroup();
+        try {
+            Bootstrap bootstrap = new Bootstrap();
+            bootstrap.group(group).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new IdleStateHandler(15, 0, 0, TimeUnit.MINUTES));
+                    ch.pipeline().addLast(new DtuServiceHandler());
+                }
+            });
+
+            // 连接到服务器
+            ChannelFuture channelFuture = bootstrap.connect("localhost", 502).sync();
+
+            // 获取Channel
+            Channel channel = channelFuture.channel();
+
+            byte[] message = new byte[]{0x00, 0x01, // 事务标识符
+                    0x00, 0x00, // 协议标识符
+                    0x00, 0x06, // 长度
+                    0x01,       // 单元标识符
+                    0x03,       // 功能码
+                    0x00, 0x00, // 起始地址
+                    0x00, 0x0A  // 寄存器数量
+            };
+
+            for (int i = 0; i < 10; i++) {
+                channel.writeAndFlush(Unpooled.copiedBuffer(message));
+                // Thread.sleep(1000);
+            }
+            // 发送数据
+            // String data = "Hello, Netty!";
+            // channel.writeAndFlush(Unpooled.copiedBuffer(message));
+
+            // 等待连接关闭
+            channel.closeFuture().sync();
+        } finally {
+            group.shutdownGracefully();
+        }
+    }
 
     // public static void main(String[] args) {
     //     NettyClient nettyClient = new NettyClient("localhost", 502);
@@ -110,6 +110,7 @@ public class NettyClient {
                     log.error("NettyClient connecting to server = " + NettyClient.this.serverIp + " and port = " + NettyClient.this.serverPort + " failed.");
                 }
             });
+            // 等待客户端通知信息->关闭连接
             future.channel().closeFuture().sync();
         } catch (Exception e) {
             log.error("NettyClient connect error", e);

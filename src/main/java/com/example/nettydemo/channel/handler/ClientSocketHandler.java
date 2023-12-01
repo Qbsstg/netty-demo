@@ -1,19 +1,16 @@
 package com.example.nettydemo.channel.handler;
 
-import com.example.nettydemo.channel.netty.NettyClient;
 import com.example.nettydemo.common.AccessType;
 import com.example.nettydemo.common.GlobalVariables;
 import com.example.nettydemo.devices.dtu.ServerDtu;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 /**
  * @author: Qbss
@@ -54,14 +51,13 @@ public class ClientSocketHandler extends ChannelInboundHandlerAdapter {
                 serverDtu.setPort(port);
                 GlobalVariables.GLOBAL_CONNECTKEY_SERVER_DTU_MAP.put(connectKey, serverDtu);
                 GlobalVariables.GLOBAL_CHANNEL_HANDLER_CONTEXT_MAP.put(serverDtu.getSn(), ctx);
-                log.info("创建了新的链接，当前的链接信息为：ctx:{},{}", ctx.channel().id(),ctx.channel().isActive());
+                log.info("创建了新的链接，当前的链接信息为：ctx:{},{}", ctx.channel().id(), ctx.channel().isActive());
                 serverDtu.setChannelHandlerContext(ctx);
                 break;
             }
         }
         if (!foundDtu) {
             log.warn("Socket handler can't find serverDtu configuration of ip = " + ip + " and port = " + port);
-            log.info("未找到dtu，开始关闭原来的连接，通道信息为,ctx id :{}", ctx.channel().id());
             ctx.close();
         }
 
@@ -79,7 +75,10 @@ public class ClientSocketHandler extends ChannelInboundHandlerAdapter {
         int port = socketAddress.getPort();
         String connectKey = ip + ":" + port;
 
+        log.info(" received data: bytes." + Arrays.toString(bytes));
+
         ServerDtu serverDtu = GlobalVariables.GLOBAL_CONNECTKEY_SERVER_DTU_MAP.get(connectKey);
+
         serverDtu.handleReceivedData(bytes);
     }
 
@@ -110,7 +109,7 @@ public class ClientSocketHandler extends ChannelInboundHandlerAdapter {
         ServerDtu dtu = GlobalVariables.GLOBAL_CONNECTKEY_SERVER_DTU_MAP.get(connectKey);
         if (dtu != null) {
             ChannelHandlerContext ctxLocal = dtu.getCtxLocal();
-            if (!ctxLocal.channel().isActive()){
+            if (!ctxLocal.channel().isActive()) {
                 GlobalVariables.GLOBAL_CHANNEL_HANDLER_CONTEXT_MAP.remove(dtu.getSn());
                 dtu.onDisconnected();
             }

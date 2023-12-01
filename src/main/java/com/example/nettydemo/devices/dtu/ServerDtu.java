@@ -6,7 +6,6 @@ import com.example.nettydemo.common.GlobalVariables;
 import com.example.nettydemo.devices.BaseDevice;
 import com.example.nettydemo.devices.business.BaseBusinessDevice;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
@@ -62,15 +61,16 @@ public class ServerDtu extends BaseDevice {
         this.deviceIndexLock = new ReentrantLock();
         this.ctxLocal = null;
 
-        this.businessTaskFuture = GlobalVariables.GLOBAL_SCHEDULED_SERVICE_POOL.scheduleWithFixedDelay(() -> {
-            try {
-                // 调用数据处理周期函数
-                this.dispatch();
-            } catch (Exception e) {
-                log.warn("businessTaskFuture error", e);
-            }
-            // 1s处理一次
-        }, 0L, 1000L, TimeUnit.MILLISECONDS);
+        // // 此处方法有点多余，在通道建立之后，会直接开始调用函数，这里没必要再次调用
+        // this.businessTaskFuture = GlobalVariables.GLOBAL_SCHEDULED_SERVICE_POOL.scheduleWithFixedDelay(() -> {
+        //     try {
+        //         // 调用数据处理周期函数
+        //         this.dispatch();
+        //     } catch (Exception e) {
+        //         log.warn("businessTaskFuture error", e);
+        //     }
+        //     // 1s处理一次
+        // }, 0L, 1000L, TimeUnit.MILLISECONDS);
 
     }
 
@@ -98,15 +98,13 @@ public class ServerDtu extends BaseDevice {
                 .scheduleWithFixedDelay(() -> {
                     try {
                         // 调用数据处理周期函数
-                        log.info("准备进入线程池，准备发送报文的ctx信息为 ctx：id: {}，其状态为：{}", this.ctxLocal.channel().id(), this.ctxLocal.channel().isActive());
+                        // log.info("准备进入线程池，准备发送报文的ctx信息为 ctx：id: {}，其状态为：{}", this.ctxLocal.channel().id(), this.ctxLocal.channel().isActive());
                         this.dispatch();
                     } catch (Exception e) {
                         log.warn("businessTaskFuture error", e);
                     }
                     // 1s处理一次
-                }, 0L,  1000L, TimeUnit.MILLISECONDS);
-
-        this.dispatch();
+                }, 0L, 1000L, TimeUnit.MILLISECONDS);
     }
 
     // 数据处理函数 包含数据采集指令下发和数据解析
