@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class BaseModbusUDPDevice extends BaseBusinessDevice {
 
     @Override
-    public void recordSendInfo(FrameType paramFrameType) {
+    public void recordSendInfo(FrameType paramFrameType, byte[] outBuf) {
 
     }
 

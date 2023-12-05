@@ -154,7 +154,7 @@ public class ServerDtu extends BaseDevice {
                                 log.info("ServerDtu dispatch success");
                             }
                             // 记录发送信息，不管是否成功
-                            device.recordSendInfo(frameType);
+                            device.recordSendInfo(frameType,outBuf);
                         });
                     }
                 }

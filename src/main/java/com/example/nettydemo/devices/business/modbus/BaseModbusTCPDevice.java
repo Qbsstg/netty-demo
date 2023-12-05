@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -50,6 +51,9 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
     // 从站地址
     private short deviceAddressShort;
 
+    // 历史发送的报文集合
+    private Map<String, Pair<FrameType, byte[]>> historySendFrameMap;
+
     public BaseModbusTCPDevice(String deviceSn, String dtuSn, String name, String protocolType, short address) {
 
         this.baseProtocol = new ModbusTCPProtocol();
@@ -70,6 +74,7 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
 
         this.deviceAddressShort = address;
 
+        this.historySendFrameMap = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -81,10 +86,13 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
     }
 
     @Override
-    public void recordSendInfo(FrameType paramFrameType) {
+    public void recordSendInfo(FrameType paramFrameType, byte[] outBuf) {
         // 此处根据不同的类型帧，进行不同业务处理
         // 。。。。
         this.lastSendTime = Instant.now();
+        int sendNo = (outBuf[0] & 0xFF) << 8 | (outBuf[1] & 0xFF);
+        this.historySendFrameMap.put(String.valueOf(sendNo), new Pair<>(paramFrameType, outBuf));
+
     }
 
     @Override

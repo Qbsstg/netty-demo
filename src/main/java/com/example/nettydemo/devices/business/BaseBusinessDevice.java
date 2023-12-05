@@ -46,7 +46,7 @@ public abstract class BaseBusinessDevice extends BaseDevice {
     // 待发送的数据集
     protected LinkedBlockingDeque<Pair<FrameType,byte[]>> outputBytesBuffer;
 
-    public abstract void recordSendInfo(FrameType paramFrameType);
+    public abstract void recordSendInfo(FrameType paramFrameType,byte[] outBuf);
 
     public abstract void doBusiness();
 
