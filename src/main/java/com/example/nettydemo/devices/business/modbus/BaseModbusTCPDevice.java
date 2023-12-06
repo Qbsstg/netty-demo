@@ -51,7 +51,7 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
     // 从站地址
     private short deviceAddressShort;
 
-    // 历史发送的报文集合
+    // 历史发送的报文集合 使用String类型作为key，String不可变带来不需要计算hash值，同时兼容非数字型序号
     private Map<String, Pair<FrameType, byte[]>> historySendFrameMap;
 
     public BaseModbusTCPDevice(String deviceSn, String dtuSn, String name, String protocolType, short address) {

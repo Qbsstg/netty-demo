@@ -16,10 +16,13 @@ import org.javatuples.Pair;
 @AllArgsConstructor
 public class FrameParseResult {
 
+    // 解析结果
     private Boolean result;
 
+    // 帧类型
     private FrameType type;
 
+    // 帧数据 <类型，数据>
     private Pair<String, byte[]> pairData;
 
     public FrameParseResult(Boolean result) {
