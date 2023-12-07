@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.javatuples.Pair;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,8 @@ public class ModbusTCPProtocol extends BaseProtocol {
         /*
         * 修改：
         *   获取当前序号的方式由于并发的存在，除非将MBAPIndex设置为线程安全的，否则会出现问题，改为从报文中直接获取
+        *
+        * 我觉得这个解决方案不太好，因为我没办法保证inBuffer的数据是完整的标准格式，假如inBuffer的数据是不完整的，那么我就没办法获取到正确的index
         * */
         int MBAPIndex = (inBuffer[0] & 0xFF) << 8 | (inBuffer[1] & 0xFF);
 
@@ -210,7 +213,70 @@ public class ModbusTCPProtocol extends BaseProtocol {
     public static void main(String[] args) {
         byte[] buf = {0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
                 0x01, 0x04, 0x01, 0x11};
-        FrameParseResult parseResult = parseFrame(buf, null);
-        System.out.println(parseResult);
+        // FrameParseResult parseResult = parseFrame(buf, null);
+        // System.out.println(parseResult);
+        byte[] buf1 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
+                0x01, 0x04, 0x01, 0x11,0x00,0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
+                0x01, 0x04, 0x01, 0x11,0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
+                0x01, 0x04, 0x01, 0x11};
+        System.out.println(extractModbusFrames(buf1));
+    }
+
+    public static boolean isValidModbusFrame(byte[] frame) {
+        if (frame.length < 12) {
+            return false;
+        }
+
+        int transactionId = (frame[0] & 0xFF) << 8 | (frame[1] & 0xFF);
+        if (transactionId != 0x0000) {
+            return false;
+        }
+
+        int protocolId = (frame[2] & 0xFF) << 8 | (frame[3] & 0xFF);
+        if (protocolId != 0x0000) {
+            return false;
+        }
+
+        int length = (frame[4] & 0xFF) << 8 | (frame[5] & 0xFF);
+        if (length != frame.length - 6) {
+            return false;
+        }
+
+        byte unitId = frame[6];
+        if (unitId != 0x01) {
+            return false;
+        }
+
+        byte functionCode = frame[7];
+        return functionCode >= 1 && functionCode <= 16;
+    }
+
+    public static List<byte[]> extractModbusFrames(byte[] inBuffer) {
+        List<byte[]> frames = new ArrayList<>();
+        ByteArrayOutputStream tempFrame = new ByteArrayOutputStream();
+        int frameStartIndex = 0;
+
+        for (int i = 0; i < inBuffer.length; i++) {
+            tempFrame.write(inBuffer[i]);
+            byte[] frameBytes = tempFrame.toByteArray();
+
+            // 检查是否有完整的Modbus报文
+            if (frameBytes.length >= 12 && isValidModbusFrame(frameBytes)) {
+                frames.add(frameBytes);
+                tempFrame.reset();
+                frameStartIndex = i;
+            }
+        }
+
+        // 检查是否有未完成的报文
+        if (frameStartIndex < inBuffer.length) {
+            byte[] remainingBytes = new byte[inBuffer.length - frameStartIndex];
+            System.arraycopy(inBuffer, frameStartIndex, remainingBytes, 0, remainingBytes.length);
+            if (isValidModbusFrame(remainingBytes)) {
+                frames.add(remainingBytes);
+            }
+        }
+
+        return frames;
     }
 }
