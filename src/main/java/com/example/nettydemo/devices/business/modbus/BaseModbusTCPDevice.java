@@ -110,7 +110,13 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
 
     }
 
-    private void sendReadData(int type, int start, int num) {
+    /**
+     *
+     * @param type 命令类型
+     * @param startIndex 起始位置
+     * @param quantity 寄存器数量
+     */
+    private void sendReadData(int type, int startIndex, int quantity) {
 
         if (this.MBAPIndex == 65535) {
             this.MBAPIndex = 0;
@@ -139,12 +145,12 @@ public class BaseModbusTCPDevice extends BaseBusinessDevice {
         queryBytes[1] = (byte) (type & 0xFF);
 
         // 起始地址
-        queryBytes[2] = (byte) (start >> 8 & 0xFF);
-        queryBytes[3] = (byte) (start & 0xFF);
+        queryBytes[2] = (byte) (startIndex >> 8 & 0xFF);
+        queryBytes[3] = (byte) (startIndex & 0xFF);
 
         // 寄存器数量
-        queryBytes[4] = (byte) (num >> 8 & 0xFF);
-        queryBytes[5] = (byte) (num & 0xFF);
+        queryBytes[4] = (byte) (quantity >> 8 & 0xFF);
+        queryBytes[5] = (byte) (quantity & 0xFF);
 
         // 将RTU信息体帧添加到发送帧中
         System.arraycopy(queryBytes, 0, sendBytes, 6, 6);

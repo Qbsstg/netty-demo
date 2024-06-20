@@ -105,9 +105,9 @@ public class NettyClient {
             ChannelFuture future = this.bootstrap.connect(this.serverIp, this.serverPort).sync();
             future.addListener(f -> {
                 if (f.isSuccess()) {
-                    log.info("NettyClient successfully connected with server = " + NettyClient.this.serverIp + " and port = " + NettyClient.this.serverPort);
+                    log.info("NettyClient successfully connected with server = {} and port = {}", NettyClient.this.serverIp, NettyClient.this.serverPort);
                 } else {
-                    log.error("NettyClient connecting to server = " + NettyClient.this.serverIp + " and port = " + NettyClient.this.serverPort + " failed.");
+                    log.error("NettyClient connecting to server = {} and port = {} failed.", NettyClient.this.serverIp, NettyClient.this.serverPort);
                 }
             });
             // 等待客户端通知信息->关闭连接

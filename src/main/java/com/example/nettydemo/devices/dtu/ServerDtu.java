@@ -79,7 +79,7 @@ public class ServerDtu extends BaseDevice {
     }
 
     public void setChannelHandlerContext(ChannelHandlerContext ctx) {
-        // 如果当前通道已经存在，那么就关闭当前通道
+        // 如果当前DTU中已经存在可用channel信息，那么就关闭当下channel
         if (this.ctxLocal != null && !this.ctxLocal.isRemoved()) {
             this.ctxLocal.close();
         }
